@@ -170,6 +170,26 @@ struct	weather_data
     int		sunlight;
 };
 
+/*
+ * Colour stuff by Lope of Loping Through The MUD
+ */
+#define CLEAR		"[0m"		/* Resets Colour	*/
+#define C_RED		"[0;31m"	/* Normal Colours	*/
+#define C_GREEN		"[0;32m"
+#define C_YELLOW	"[0;33m"
+#define C_BLUE		"[0;34m"
+#define C_MAGENTA	"[0;35m"
+#define C_CYAN		"[0;36m"
+#define C_WHITE		"[0;37m"
+#define C_D_GREY	"[1;30m"  	/* Light Colors		*/
+#define C_B_RED		"[1;31m"
+#define C_B_GREEN	"[1;32m"
+#define C_B_YELLOW	"[1;33m"
+#define C_B_BLUE	"[1;34m"
+#define C_B_MAGENTA	"[1;35m"
+#define C_B_CYAN	"[1;36m"
+#define C_B_WHITE	"[1;37m"
+ 
 
 
 /*
@@ -793,6 +813,7 @@ struct	kill_data
 #define PLR_KILLER		8388608
 #define PLR_AUTOGOLD           16777216
 #define PLR_AFK                33554432
+#define PLR_COLOUR             67108864
 
 /*
  * Obsolete bits.
@@ -1389,6 +1410,7 @@ DECLARE_DO_FUN(	do_channels	);
 DECLARE_DO_FUN(	do_chat		);
 DECLARE_DO_FUN(	do_circle 	);		/* by Thelonius */
 DECLARE_DO_FUN(	do_close	);
+DECLARE_DO_FUN( do_colour       );	/* Colour Command By Lope */
 DECLARE_DO_FUN( do_combine      );
 DECLARE_DO_FUN(	do_commands	);
 DECLARE_DO_FUN(	do_compare	);
@@ -1750,6 +1772,12 @@ void    show_string      args( ( DESCRIPTOR_DATA *d, char *input ) );
 void	act	         args( ( const char *format, CHAR_DATA *ch,
 				const void *arg1, const void *arg2,
 				int type ) );
+/*
+ * Colour stuff by Lope of Loping Through The MUD
+ */
+int	colour		args( ( char type, CHAR_DATA *ch, char *string ) );
+void	colourconv	args( ( char *buffer, const char *txt, CHAR_DATA *ch ) );
+void	send_to_char_bw	args( ( const char *txt, CHAR_DATA *ch ) );
 
 /* db.c */
 void	boot_db		args( ( void ) );

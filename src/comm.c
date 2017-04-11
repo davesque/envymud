@@ -826,14 +826,16 @@ void bust_a_prompt( DESCRIPTOR_DATA *d )
    const char      *str;
    const char      *i;
          char      *point;
-         char       buf  [ MAX_STRING_LENGTH ];
-         char       buf2 [ MAX_STRING_LENGTH ];
+         char      *pbuff;
+         char       buffer[ MAX_STRING_LENGTH ];
+         char       buf  [ MAX_STRING_LENGTH  ];
+         char       buf2 [ MAX_STRING_LENGTH  ];
 
    /* Will always have a pc ch after this */
    ch = ( d->original ? d->original : d->character );
    if( !ch->pcdata->prompt || ch->pcdata->prompt[0] == '\0' )
    {
-      send_to_char( "\r\n\r\n", ch );
+      send_to_char_bw( "\n\r\n\r", ch );
       return;
    }
 
@@ -923,7 +925,10 @@ void bust_a_prompt( DESCRIPTOR_DATA *d )
       while( ( *point = *i ) != '\0' )
          ++point, ++i;      
    }
-   write_to_buffer( d, buf, point - buf );
+   *point = '\0';
+   pbuff	= buffer;
+   colourconv( pbuff, buf, ch );
+   write_to_buffer( d, buffer, 0 );
    return;
 }
 
@@ -1385,7 +1390,7 @@ void nanny( DESCRIPTOR_DATA *d, char *argument )
 		    [ch->sex == SEX_FEMALE ? 1 : 0] );
 	    set_title( ch, buf );
 	    free_string( ch->pcdata->prompt );
-	    ch->pcdata->prompt = str_dup( "<%hhp %mm %vmv> " );
+	    ch->pcdata->prompt = str_dup( "{c<%hhp %mm %vmv>{x " );
 
 	    obj = create_object( get_obj_index( OBJ_VNUM_SCHOOL_BANNER ), 0 );
 	    obj_to_char( obj, ch );
@@ -1646,16 +1651,16 @@ void send_to_all_char( const char *text )
 /*
  * Write to one char.
  */
-void send_to_char( const char *txt, CHAR_DATA *ch )
+void send_to_char_bw( const char *txt, CHAR_DATA *ch )
 {
-    if ( !txt || !ch->desc )
+    if( !txt || !ch->desc )
         return;
 
     /*
      * Bypass the paging procedure if the text output is small
      * Saves process time.
      */
-    if ( strlen( txt ) < 600 )
+    if( strlen( txt ) < 600 )
 	write_to_buffer( ch->desc, txt, strlen( txt ) );
     else
     {
@@ -1665,6 +1670,68 @@ void send_to_char( const char *txt, CHAR_DATA *ch )
 	show_string( ch->desc, "" );
     }
 
+    return;
+}
+
+/*
+ * Send to one char, new colour version, by Lope.
+ */
+void send_to_char( const char *txt, CHAR_DATA *ch )
+{
+    const	char 	*point;
+    		char 	*point2;
+    		char 	buf[ MAX_STRING_LENGTH*4 ];
+		int	skip = 0;
+
+    buf[0] = '\0';
+    point2 = buf;
+    if ( txt && ch->desc )
+	{
+	    if ( IS_SET( ch->act, PLR_COLOUR ) )
+	    {
+		for( point = txt ; *point ; point++ )
+	        {
+		    if( *point == '{' )
+		    {
+			point++;
+			skip = colour( *point, ch, point2 );
+			while( skip-- > 0 )
+			    ++point2;
+			continue;
+		    }
+
+		    *point2 = *point;		    *++point2 = '\0';
+		}			
+		*point2 = '\0';
+		free_string( ch->desc->showstr_head );
+		ch->desc->showstr_head  = str_dup( buf );
+		ch->desc->showstr_point = ch->desc->showstr_head;
+		show_string( ch->desc, "" );
+	    }
+	    else
+	    {
+		for( point = txt ; *point ; point++ )
+	        {
+		    if( *point == '{' )
+		    {
+			point++;
+			if( *point == '{' )
+			{
+			    *point2 = *point;
+			    *++point2 = '\0';
+			}
+			continue;
+		    }
+		    *point2 = *point;
+		    *++point2 = '\0';
+		}
+		*point2 = '\0';
+		free_string( ch->desc->showstr_head );
+		ch->desc->showstr_head  = str_dup( buf );
+		ch->desc->showstr_point = ch->desc->showstr_head;
+		show_string( ch->desc, "" );
+	    }
+	}
     return;
 }
 
@@ -1753,9 +1820,10 @@ void show_string( struct descriptor_data *d, char *input )
     }
 
     /* On advice by Scott Mobley and others */
+/*
     *scan++ = '\n';
     *scan++ = '\r';
-
+*/
     *scan = 0;
 
     write_to_buffer( d, buffer, strlen( buffer ) );
@@ -1785,8 +1853,10 @@ void act( const char *format, CHAR_DATA *ch, const void *arg1,
     const  char            *str;
     const  char            *i;
            char            *point;
+           char            *pbuff;
            char             buf     [ MAX_STRING_LENGTH ];
            char             buf1    [ MAX_STRING_LENGTH ];
+           char             buffer  [ MAX_STRING_LENGTH*2 ];
            char             fname   [ MAX_INPUT_LENGTH  ];
 
     /*
@@ -1893,12 +1963,139 @@ void act( const char *format, CHAR_DATA *ch, const void *arg1,
 		++point, ++i;
 	}
 
-	*point++ = '\n';
-	*point++ = '\r';
-	buf[0]   = UPPER( buf[0] );
-	if ( to->desc )
-	    write_to_buffer( to->desc, buf, point - buf );
+        *point++	= '\n';
+        *point++	= '\r';
+        *point		= '\0';
+	buf[0]		= UPPER( buf[0] );
+	pbuff		= buffer;
+	colourconv( pbuff, buf, to );
+	if( to->desc )
+	    write_to_buffer( to->desc, buffer, 0 );
     }
 
+    return;
+}
+
+int colour( char type, CHAR_DATA *ch, char *string )
+{
+    char	code[ 20 ];
+    char	*p = '\0';
+
+    if( IS_NPC( ch ) )
+	return( 0 );
+
+    switch( type )
+    {
+	default:
+	    sprintf( code, CLEAR );
+	    break;
+	case 'x':
+	    sprintf( code, CLEAR );
+	    break;
+	case 'b':
+	    sprintf( code, C_BLUE );
+	    break;
+	case 'c':
+	    sprintf( code, C_CYAN );
+	    break;
+	case 'g':
+	    sprintf( code, C_GREEN );
+	    break;
+	case 'm':
+	    sprintf( code, C_MAGENTA );
+	    break;
+	case 'r':
+	    sprintf( code, C_RED );
+	    break;
+	case 'w':
+	    sprintf( code, C_WHITE );
+	    break;
+	case 'y':
+	    sprintf( code, C_YELLOW );
+	    break;
+	case 'B':
+	    sprintf( code, C_B_BLUE );
+	    break;
+	case 'C':
+	    sprintf( code, C_B_CYAN );
+	    break;
+	case 'G':
+	    sprintf( code, C_B_GREEN );
+	    break;
+	case 'M':
+	    sprintf( code, C_B_MAGENTA );
+	    break;
+	case 'R':
+	    sprintf( code, C_B_RED );
+	    break;
+	case 'W':
+	    sprintf( code, C_B_WHITE );
+	    break;
+	case 'Y':
+	    sprintf( code, C_B_YELLOW );
+	    break;
+	case 'D':
+	    sprintf( code, C_D_GREY );
+	    break;
+	case '*':
+	    sprintf( code, "%c", 007 );
+	    break;
+	case '/':
+	    sprintf( code, "%c", 012 );
+	    break;
+	case '{':
+	    sprintf( code, "%c", '{' );
+	    break;
+    }
+
+    p = code;
+    while( *p != '\0' )
+    {
+	*string = *p++;
+	*++string = '\0';
+    }
+
+    return( strlen( code ) );
+}
+
+void colourconv( char *buffer, const char *txt , CHAR_DATA *ch )
+{
+    const	char	*point;
+		int	skip = 0;
+
+    if( ch->desc && txt )
+    {
+	if( IS_SET( ch->act, PLR_COLOUR ) )
+	{
+	    for( point = txt ; *point ; point++ )
+	    {
+		if( *point == '{' )
+		{
+		    point++;
+		    skip = colour( *point, ch, buffer );
+		    while( skip-- > 0 )
+			++buffer;
+		    continue;
+		}
+		*buffer = *point;
+		*++buffer = '\0';
+	    }			
+	    *buffer = '\0';
+	}
+	else
+	{
+	    for( point = txt ; *point ; point++ )
+	    {
+		if( *point == '{' )
+		{
+		    point++;
+		    continue;
+		}
+		*buffer = *point;
+		*++buffer = '\0';
+	    }
+	    *buffer = '\0';
+	}
+    }
     return;
 }

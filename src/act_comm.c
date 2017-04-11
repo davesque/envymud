@@ -582,8 +582,44 @@ void talk_channel( CHAR_DATA *ch, char *argument, int channel,
 	sprintf( buf, "$n %ss '$t'",     verb );
 	break;
 
+    case CHANNEL_AUCTION:
+	sprintf( buf, "{yYou %s '%s'{x\n\r", verb, argument );
+	send_to_char( buf, ch );
+	sprintf( buf, "{y$n %ss '$t'{x",     verb );
+	break;
+
+    case CHANNEL_MUSIC:
+	sprintf( buf, "{yYou %s '%s'{x\n\r", verb, argument );
+	send_to_char( buf, ch );
+	sprintf( buf, "{y$n %ss '$t'{x",     verb );
+	break;
+
+    case CHANNEL_QUESTION:
+	sprintf( buf, "{yYou %s '%s'{x\n\r", verb, argument );
+	send_to_char( buf, ch );
+	sprintf( buf, "{y$n %ss '$t'{x",     verb );
+	break;
+
+    case CHANNEL_SHOUT:
+	sprintf( buf, "{rYou %s '%s'{x\n\r", verb, argument );
+	send_to_char( buf, ch );
+	sprintf( buf, "{r$n %ss '$t'{x",     verb );
+	break;
+
+    case CHANNEL_YELL:
+	sprintf( buf, "{bYou %s '%s'{x\n\r", verb, argument );
+	send_to_char( buf, ch );
+	sprintf( buf, "{b$n %ss '$t'{x",     verb );
+	break;
+
+    case CHANNEL_CHAT:
+	sprintf( buf, "{mYou %s '%s'{x\n\r", verb, argument );
+	send_to_char( buf, ch );
+	sprintf( buf, "{m$n %ss '$t'{x",     verb );
+	break;
+
     case CHANNEL_IMMTALK:
-	sprintf( buf, "$n: $t" );
+	sprintf( buf, "{c[{y$n{c]: $t{x" );
 	position	= ch->position;
 	ch->position	= POS_STANDING;
 	act( buf, ch, argument, NULL, TO_CHAR );
@@ -707,7 +743,7 @@ void do_say( CHAR_DATA *ch, char *argument )
 {
     if ( argument[0] == '\0' )
     {
-	send_to_char( "Say what?\r\n", ch );
+ 	send_to_char_bw( "Say what?\n\r", ch );
 	return;
     }
 
@@ -715,14 +751,14 @@ void do_say( CHAR_DATA *ch, char *argument )
 	|| IS_SET( race_table[ch->race].race_abilities, RACE_MUTE )
         || IS_SET( ch->in_room->room_flags, ROOM_CONE_OF_SILENCE ) )
     {
-        send_to_char( "Your lips move but no sound comes out.\r\n", ch );
+        send_to_char_bw( "You can't seem to break the silence.\n\r", ch );
         return;
     }
 
     argument = makedrunk( argument, ch );
 
-    act( "$n says '$T'", ch, NULL, argument, TO_ROOM );
-    act( "You say '$T'", ch, NULL, argument, TO_CHAR );
+    act( "{g$n says '$T'{x", ch, NULL, argument, TO_ROOM );
+    act( "{gYou say '$T'{x", ch, NULL, argument, TO_CHAR );
     return;
 }
 
@@ -1780,5 +1816,37 @@ bool is_same_group( CHAR_DATA *ach, CHAR_DATA *bch )
     if ( ach->leader ) ach = ach->leader;
     if ( bch->leader ) bch = bch->leader;
     return ach == bch;
+}
+
+/*
+ * Colour setting and unsetting, way cool, Lope Oct '94
+ */
+void do_colour( CHAR_DATA *ch, char *argument )
+{
+    char 	arg[ MAX_STRING_LENGTH ];
+
+    argument = one_argument( argument, arg );
+
+    if( !*arg )
+    {
+	if( !IS_SET( ch->act, PLR_COLOUR ) )
+	{
+	    SET_BIT( ch->act, PLR_COLOUR );
+	    send_to_char( "{bC{ro{yl{co{mu{gr{x is now {rON{x, Way Cool!\n\r", ch );
+	}
+	else
+	{
+	    send_to_char_bw( "Colour is now OFF, <sigh>\n\r", ch );
+	    REMOVE_BIT( ch->act, PLR_COLOUR );
+	}
+	return;
+    }
+    else
+    {
+	send_to_char_bw( "Colour Configuration is unavailable in this\n\r", ch );
+	send_to_char_bw( "version of colour, sorry\n\r", ch );
+    }
+
+    return;
 }
 

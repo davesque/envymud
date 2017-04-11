@@ -1,0 +1,13 @@
+EnvyMud Release 2.2
+Friday, 14th February 1997
+
+Kahn		envy@envy.com
+
+
+
+=== The log directory
+
+This file gives a brief description of the files in the log directory.
+
+*.log		- An individual log file created by the Mud run script.
+errors.out	- Contains any errors the run script may produce.
